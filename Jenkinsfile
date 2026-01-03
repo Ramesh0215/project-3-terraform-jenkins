@@ -41,13 +41,13 @@ pipeline{
 
         stage('Update ECS Service') {
             steps{
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-creds']]){
-                    sh ''' 
-                     aws ecs update-service \ 
-                     --cluster ecs-demo-cluster \
-                     --service ecs-demo-service \
-                     --force-new-deployment
-                     '''
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-creds']]) {
+                    sh '''
+                    aws ecs update-service \
+                    --cluster ecs-demo-cluster \
+                    --service ecs-demo-service \
+                    --force-new-deployment
+                    '''
                 }
             }
         }
