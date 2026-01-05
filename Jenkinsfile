@@ -1,56 +1,68 @@
-pipeline{
+pipeline {
     agent any
-    environment{
+
+    environment {
         AWS_REGION = "us-east-1"
-        ECS_REPO = "568619624691.dkr.ecr.us-east-1.amazonaws.com/ecs-cicd-repo"
-        IMAGE_TAG = "latest"
+        AWS_ACCOUNT_ID = "568619694691"
+        ECR_REPO = "ecs-demo-repo"
+        IMAGE_NAME = "ecs-demo"
+        CLUSTER_NAME = "ecs-demo-cluster"
+        SERVICE_NAME = "ecs-demo-service"
     }
-    stages{
-        stage ('Checkout') {
-            steps{
-                git branch: 'main', url 'https://github.com/Ramesh0215/project-3-terraform-jenkins.git'
-            
+
+    stages {
+
+        stage('Checkout Code') {
+            steps {
+                git url: 'https://github.com/Ramesh0215/project-3-terraform-jenkins.git', branch: 'main'
             }
         }
-        stage('Login to ECR'){
-            steps{
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBuilding', credentialsId: 'aws-creds']]){
+
+        stage('ECR Login') {
+            steps {
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'aws-creds'
+                ]]) {
                     bat '''
-                        aws ecr get-login-password --region $AWS_REGION \
-                        |docker login --username AWS --password-stdin 568619694691.dkr.ecr.us-east-1.amazonaws.com
+                        aws ecr get-login-password --region %AWS_REGION% ^
+                        | docker login --username AWS --password-stdin %AWS_ACCOUNT_ID%.dkr.ecr.%AWS_REGION%.amazonaws.com
                     '''
                 }
             }
         }
+
         stage('Build Docker Image') {
             steps {
                 bat '''
-                  docker build -t ecs-cicd .
-                  docker tag ecs-cicd:latest $ECR_REPO:$IMAGE_TAG
-                '''
-                }
-        }
-
-        stage('Push Image to ECR') {
-            steps {
-                bat '''
-                    docker push $ECR_REPO:$IMAGE_TAG
+                    docker build -t %IMAGE_NAME% .
                 '''
             }
         }
 
-        stage('Update ECS Service') {
-            steps{
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-creds']]) {
+        stage('Tag & Push Image') {
+            steps {
+                bat '''
+                    docker tag %IMAGE_NAME%:latest %AWS_ACCOUNT_ID%.dkr.ecr.%AWS_REGION%.amazonaws.com/%ECR_REPO%:latest
+                    docker push %AWS_ACCOUNT_ID%.dkr.ecr.%AWS_REGION%.amazonaws.com/%ECR_REPO%:latest
+                '''
+            }
+        }
+
+        stage('Deploy to ECS') {
+            steps {
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'aws-creds'
+                ]]) {
                     bat '''
-                    aws ecs update-service \
-                    --cluster ecs-demo-cluster \
-                    --service ecs-demo-service \
-                    --force-new-deployment
+                        aws ecs update-service ^
+                          --cluster %CLUSTER_NAME% ^
+                          --service %SERVICE_NAME% ^
+                          --force-new-deployment
                     '''
                 }
             }
         }
-        
     }
 }
