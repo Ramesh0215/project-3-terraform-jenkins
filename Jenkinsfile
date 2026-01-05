@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         AWS_REGION = "us-east-1"
-        AWS_ACCOUNT_ID = "568619694691"
+        AWS_ACCOUNT_ID = "568619624691"
         ECR_REPO = "ecs-demo-repo"
         IMAGE_NAME = "ecs-demo"
         CLUSTER_NAME = "ecs-demo-cluster"
